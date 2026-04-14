@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, BookUp, BookDown, FileBarChart, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { BookOpen, BookUp, BookDown, FileBarChart, LayoutDashboard, Settings, Users, CircleDollarSign } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -21,6 +21,7 @@ const adminNavItems: NavItem[] = [
     { title: 'Kelola Anggota', href: '/admin/members', icon: Users },
     { title: 'Peminjaman', href: '/admin/transactions/borrows', icon: BookUp },
     { title: 'Pengembalian', href: '/admin/transactions/returns', icon: BookDown },
+    { title: 'Kelola Denda', href: '/admin/fines', icon: CircleDollarSign },
     { title: 'Laporan', href: '/admin/reports', icon: FileBarChart },
     { title: 'Pengaturan', href: '/admin/settings', icon: Settings },
 ];

@@ -1,5 +1,6 @@
 import { Head, Link, usePage, usePoll, router } from '@inertiajs/react';
 import UserLayout from '@/layouts/user-layout';
+import FlashAlert from '@/components/flash-alert';
 
 const statusConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
   pending_peminjaman:  { label: 'Pending Pinjam',  dot: 'bg-yellow-400',  text: 'text-yellow-800',  bg: 'bg-yellow-100'  },
@@ -39,18 +40,8 @@ export default function TransactionsIndex({ transactions, filters }: any) {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-10">
         {/* FLASH */}
-        {flash?.success && (
-          <div className="mb-6 flex items-center gap-3 bg-emerald-50 text-emerald-800 px-4 py-3 rounded-lg border-l-4 border-emerald-500 text-sm font-medium shadow-sm">
-            <span className="text-emerald-600 bg-emerald-100 rounded-full w-5 h-5 flex items-center justify-center">✓</span>
-            {flash.success}
-          </div>
-        )}
-        {flash?.error && (
-          <div className="mb-6 flex items-center gap-3 bg-rose-50 text-rose-800 px-4 py-3 rounded-lg border-l-4 border-rose-500 text-sm font-medium shadow-sm">
-            <span className="text-rose-600 bg-rose-100 rounded-full w-5 h-5 flex items-center justify-center">✕</span>
-            {flash.error}
-          </div>
-        )}
+        {flash?.success && <FlashAlert type="success" message={flash.success} />}
+        {flash?.error && <FlashAlert type="error" message={flash.error} />}
 
         {/* PAGE HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">

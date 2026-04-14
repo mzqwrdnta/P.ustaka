@@ -33,7 +33,10 @@ function DetailField({ label, value, className = '' }: { label: string; value: R
 export default function AdminTransactionsBorrows({ transactions, filters }: any) {
     const { flash } = usePage<any>().props;
     const [search, setSearch] = useState(filters?.search || '');
-    const [tanggal, setTanggal] = useState(filters?.tanggal || '');
+    const [status, setStatus] = useState(filters?.status || '');
+    const [kelas, setKelas] = useState(filters?.kelas || '');
+    const [start, setStart] = useState(filters?.start_date || '');
+    const [end, setEnd] = useState(filters?.end_date || '');
     const [detail, setDetail] = useState<any>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -43,13 +46,13 @@ export default function AdminTransactionsBorrows({ transactions, filters }: any)
         const timeout = setTimeout(() => {
             router.get(
                 '/admin/transactions/borrows',
-                { search, tanggal },
+                { search, status, kelas, start_date: start, end_date: end },
                 { preserveState: true, replace: true },
             );
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [search, tanggal]);
+    }, [search, status, kelas, start, end]);
 
     const openDetail = async (id: number) => {
         setLoadingDetail(true);
@@ -72,19 +75,47 @@ export default function AdminTransactionsBorrows({ transactions, filters }: any)
             <div className="flex flex-1 flex-col gap-4 rounded-xl p-4 w-full min-w-0">
                 {flash?.success && <div className="bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 p-4 rounded-xl text-sm font-medium">{flash.success}</div>}
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Cari anggota / NIS / judul buku..."
-                        className="flex h-10 w-full sm:w-72 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="flex h-10 w-full sm:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
+                    <select
+                        value={status}
+                        onChange={e => setStatus(e.target.value)}
+                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="pending_peminjaman">Menunggu Persetujuan</option>
+                        <option value="dipinjam">Sedang Dipinjam</option>
+                        <option value="pending_pengembalian">Menunggu Verifikasi Kembali</option>
+                        <option value="ditolak">Ditolak</option>
+                    </select>
+                    <select
+                        value={kelas}
+                        onChange={e => setKelas(e.target.value)}
+                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                        <option value="">Semua Kelas</option>
+                        <option value="X PPLG">X PPLG</option>
+                        <option value="XI PPLG">XI PPLG</option>
+                        <option value="XII PPLG">XII PPLG</option>
+                    </select>
                     <input
                         type="date"
-                        value={tanggal}
-                        onChange={e => setTanggal(e.target.value)}
-                        className="flex h-10 w-full sm:w-44 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={start}
+                        onChange={e => setStart(e.target.value)}
+                        className="flex h-10 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                    <span className="hidden sm:flex items-center text-gray-400">s/d</span>
+                    <input
+                        type="date"
+                        value={end}
+                        onChange={e => setEnd(e.target.value)}
+                        className="flex h-10 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                 </div>
 
@@ -143,6 +174,14 @@ export default function AdminTransactionsBorrows({ transactions, filters }: any)
                                                 >
                                                     Detail
                                                 </button>
+                                                {trx.status === 'dipinjam' && (
+                                                    <Link method="post" href={`/admin/transactions/${trx.id}/send-reminder`} as="button" className="text-xs bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 px-2.5 py-1.5 rounded font-medium transition-colors flex items-center gap-1">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                        </svg>
+                                                        Pengingat
+                                                    </Link>
+                                                )}
                                                 {trx.status === 'pending_peminjaman' && (
                                                     <>
                                                         <Link method="post" href={`/admin/transactions/${trx.id}/verify-borrow`} as="button" className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded font-medium transition-colors">Setujui</Link>

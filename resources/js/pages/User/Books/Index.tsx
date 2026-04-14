@@ -1,7 +1,8 @@
 import { Head, Link, router, usePage, usePoll } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, X, Zap, BookOpen, Clock, Info } from 'lucide-react';
 import UserLayout from '@/layouts/user-layout';
+import FlashAlert from '@/components/flash-alert';
 
 function BookCover({ book }: { book: any }) {
   return (
@@ -55,8 +56,21 @@ function BookCard({ book, delay, onView }: { book: any; delay: number; onView: (
 export default function BooksIndex({ books, categories = [], filters }: any) {
     const { flash } = usePage<any>().props;
     const [selectedBook, setSelectedBook] = useState<any>(null);
+    const [isBorrowing, setIsBorrowing] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
 
     usePoll(5000, { only: ['books'] });
+
+    // Auto-reopen modal when backend returns an error for a specific book
+    useEffect(() => {
+        if (flash?.error_book_id && flash?.error) {
+            const book = books.data.find((b: any) => b.id === flash.error_book_id);
+            if (book) {
+                setSelectedBook(book);
+                setModalError(flash.error);
+            }
+        }
+    }, [flash?.error_book_id]);
 
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -75,9 +89,15 @@ export default function BooksIndex({ books, categories = [], filters }: any) {
     };
 
     const handleBorrow = (book: any) => {
+        setIsBorrowing(true);
+        setModalError(null);
         router.post(`/user/books/${book.id}/borrow`, {}, {
             preserveScroll: true,
-            onSuccess: () => setSelectedBook(null)
+            onError: (errors) => {
+                // Handle version where error comes in errors object or flash
+                setIsBorrowing(false);
+            },
+            onFinish: () => setIsBorrowing(false),
         });
     };
 
@@ -123,12 +143,8 @@ export default function BooksIndex({ books, categories = [], filters }: any) {
                     </form>
                 </div>
 
-                {flash?.success && (
-                    <div className="mb-8 flex items-center gap-3 bg-emerald-50 text-emerald-800 px-5 py-4 rounded-xl border border-emerald-100 text-sm font-bold shadow-sm animate-[fadeUp_0.3s_ease]">
-                        <div className="bg-emerald-500 text-white rounded-full p-1"><X className="w-3 h-3 rotate-45" /></div>
-                        {flash.success}
-                    </div>
-                )}
+                {flash?.success && <FlashAlert type="success" message={flash.success} />}
+                {flash?.error && <FlashAlert type="error" message={flash.error} />}
 
                 {/* CATEGORIES */}
                 <div className="mb-10">
@@ -187,65 +203,80 @@ export default function BooksIndex({ books, categories = [], filters }: any) {
 
             {/* UPGRADED POPUP DETAIL */}
             {selectedBook && (
-              <div className="fixed inset-0 z-[100] flex md:items-center justify-center bg-stone-900/70 backdrop-blur-md transition-all p-0 md:p-6" onClick={() => setSelectedBook(null)}>
+              <div className="fixed inset-0 z-[100] flex md:items-center justify-center bg-stone-900/70 backdrop-blur-md transition-all p-0 md:p-6" onClick={() => { setSelectedBook(null); setModalError(null); }}>
                 <div 
-                  className="bg-[#f5f0e8] w-full max-w-4xl md:rounded-3xl flex flex-col md:flex-row mt-auto md:mt-0 md:h-auto h-[92vh] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_both] md:animate-[fadeUp_0.3s_ease_both]" 
+                  className="bg-[#f5f0e8] w-full max-w-4xl md:rounded-3xl flex flex-col md:flex-row mt-auto md:mt-0 md:max-h-[85vh] h-[92vh] md:h-auto overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.5)] animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_both] md:animate-[fadeUp_0.3s_ease_both]" 
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button onClick={() => setSelectedBook(null)} className="absolute top-5 right-5 z-20 w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur hover:bg-white/40 rounded-full text-stone-900 transition-all border border-white/20">
+                  <button onClick={() => { setSelectedBook(null); setModalError(null); }} className="absolute top-5 right-5 z-20 w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur hover:bg-white/40 rounded-full text-stone-900 transition-all border border-white/20">
                     <X className="w-5 h-5" />
                   </button>
                   
-                  {/* Left Side: Visual */}
-                  <div className="md:w-5/12 shrink-0 bg-stone-300 relative flex items-center justify-center p-12 md:p-16 border-r border-stone-200/50">
+                    {/* Left Side: Visual */}
+                  <div className="md:w-5/12 shrink-0 bg-stone-300 relative flex items-center justify-center p-8 md:p-16 border-b md:border-b-0 md:border-r border-stone-200/50 min-h-[300px] md:min-h-0">
                     <div className="absolute inset-0 overflow-hidden opacity-30 blur-2xl grayscale">
-                        {selectedBook.cover_image && <img src={`/storage/${selectedBook.cover_image}`} className="w-full h-full object-cover scale-125" alt="" />}
+                        {selectedBook.cover_image && <img src={`/storage/${selectedBook.cover_image}`} className="w-full h-full object-cover scale-150" alt="" />}
                     </div>
-                    <div className="relative z-10 w-full transform -rotate-2 hover:rotate-0 transition-transform duration-500">
+                    <div className="relative z-10 w-36 sm:w-48 md:w-full transform -rotate-3 md:-rotate-2 hover:rotate-0 transition-transform duration-500 shadow-2xl">
                         <BookCover book={selectedBook} />
-                        <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-amber-500 rounded-full flex items-center justify-center shadow-xl border-8 border-[#f5f0e8] transform rotate-12">
-                             <Clock className="w-8 h-8 text-stone-900" />
+                        {/* DECORATIVE BADGE (MOBILE = STOCK, DESKTOP = CLOCK) */}
+                        <div className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-14 h-14 md:w-20 md:h-20 bg-amber-500 rounded-full flex flex-col items-center justify-center shadow-xl border-4 md:border-8 border-[#f5f0e8] transform rotate-12">
+                             <Clock className="hidden md:block w-8 h-8 text-stone-900" />
+                             {/* Mobile Stock View inside the circle */}
+                             <div className="md:hidden flex flex-col items-center leading-none text-stone-900">
+                                 <span className="text-[10px] font-black uppercase tracking-tighter mix-blend-color-burn opacity-70">Sisa</span>
+                                 <span className="text-xl font-black mt-0.5">{selectedBook.stok}</span>
+                             </div>
                         </div>
                     </div>
                   </div>
                   
                   {/* Right Side: Content */}
-                  <div className="p-8 md:p-14 flex-1 flex flex-col overflow-y-auto">
-                    <div className="mb-6 flex items-center gap-3">
-                        <span className="text-[10px] bg-stone-900 text-white px-3 py-1 rounded-full uppercase font-black tracking-[0.2em]">{selectedBook.kategori}</span>
-                        {selectedBook.stok > 0 ? (
-                             <span className="text-[10px] text-emerald-600 font-black uppercase flex items-center gap-1 leading-none"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Tersedia</span>
-                        ) : (
-                             <span className="text-[10px] text-rose-600 font-black uppercase flex items-center gap-1 leading-none"><div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div> Habis</span>
-                        )}
-                    </div>
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <div className="p-6 md:p-14 flex-1 overflow-y-auto hide-scrollbar min-h-0">
+                        <div className="mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] bg-stone-900 text-white px-3 py-1 rounded-full uppercase font-black tracking-[0.2em]">{selectedBook.kategori}</span>
+                                {selectedBook.stok > 0 ? (
+                                    <span className="hidden md:flex text-[10px] text-emerald-600 font-black uppercase items-center gap-1 leading-none"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Tersedia</span>
+                                ) : (
+                                    <span className="hidden md:flex text-[10px] text-rose-600 font-black uppercase items-center gap-1 leading-none"><div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div> Habis</span>
+                                )}
+                            </div>
+                        </div>
 
-                    <h2 className="font-serif text-3xl md:text-5xl font-black leading-tight text-stone-900 mb-2">{selectedBook.judul}</h2>
-                    <p className="text-stone-500 text-sm md:text-lg mb-8 italic">Oleh <span className="text-stone-900 font-bold not-italic">{selectedBook.penulis}</span></p>
-                    
-                    <div className="mb-10 space-y-3">
-                      <h4 className="text-[11px] font-black uppercase tracking-widest text-stone-400">Sinopsis Buku</h4>
-                      <p className="text-stone-700 text-sm md:text-base leading-relaxed font-medium">
-                        {selectedBook.deskripsi || "Tidak ada deskripsi rinci untuk buku ini. Silakan hubungi petugas perpustakaan untuk informasi selengkapnya."}
-                      </p>
+                        {modalError && <FlashAlert type="error" message={modalError} duration={5000} />}
+
+                        <h2 className="font-serif text-3xl md:text-5xl font-black leading-tight text-stone-900 mb-2">{selectedBook.judul}</h2>
+                        <p className="text-stone-500 text-sm md:text-lg mb-8 italic pb-4 border-b border-stone-200">Oleh <span className="text-stone-900 font-bold not-italic">{selectedBook.penulis}</span></p>
+                        
+                        <div className="pb-4 space-y-3">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-stone-400">Sinopsis Buku</h4>
+                          <p className="text-stone-700 text-sm md:text-base leading-relaxed font-medium">
+                            {selectedBook.deskripsi || "Tidak ada deskripsi rinci untuk buku ini. Silakan hubungi petugas perpustakaan untuk informasi selengkapnya."}
+                          </p>
+                        </div>
                     </div>
                     
-                    <div className="mt-auto pt-6 flex flex-col sm:flex-row items-center gap-6 border-t border-stone-200">
+                    {/* FIXED ACTION BAR */}
+                    <div className="p-4 md:px-14 md:py-6 bg-[#f0eae1] border-t border-stone-200 flex items-center gap-6 shrink-0 relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
                       <button 
                         onClick={() => handleBorrow(selectedBook)}
-                        disabled={selectedBook.stok <= 0}
-                        className={`w-full sm:flex-1 py-4.5 md:py-4 px-10 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-xl
-                            ${selectedBook.stok > 0 
+                        disabled={selectedBook.stok <= 0 || isBorrowing}
+                        className={`w-full md:flex-1 py-4.5 md:py-4 px-10 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 flex justify-center items-center gap-3
+                            ${selectedBook.stok > 0 && !isBorrowing
                                 ? 'bg-stone-900 text-white hover:bg-amber-500 hover:text-stone-900 hover:scale-[1.02] shadow-stone-900/20' 
                                 : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'}`}
                       >
-                        {selectedBook.stok > 0 ? "Pinjam Sekarang" : "Stok Tidak Tersedia"}
+                        {isBorrowing && <div className="w-4 h-4 border-2 border-stone-400 border-t-stone-800 rounded-full animate-spin" />}
+                        {selectedBook.stok > 0 ? (isBorrowing ? "Memproses..." : "Pinjam Sekarang") : "Stok Tidak Tersedia"}
                       </button>
                       
+                      {/* DESKTOP STOCK */}
                       {selectedBook.stok > 0 && (
-                          <div className="flex flex-col items-center shrink-0">
-                             <span className="text-2xl font-black text-stone-900">{selectedBook.stok}</span>
-                             <span className="text-[9px] font-black uppercase text-stone-400 tracking-tighter">Sisa Salinan</span>
+                          <div className="hidden md:flex flex-col items-center shrink-0 px-4">
+                             <span className="text-3xl font-black text-stone-900 leading-none">{selectedBook.stok}</span>
+                             <span className="text-[10px] font-black uppercase text-stone-400 tracking-widest mt-1">Sisa Salinan</span>
                           </div>
                       )}
                     </div>

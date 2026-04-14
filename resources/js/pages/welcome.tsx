@@ -2,6 +2,7 @@ import { Head, Link, usePage, router } from '@inertiajs/react';
 import { login, register } from '@/routes';
 import { useState, useEffect } from "react";
 import { Search, Compass, BookOpen, ChevronRight, X, Info } from 'lucide-react';
+import FlashAlert from '@/components/flash-alert';
 
 function BookCover({ book }: { book: any }) {
     return (
@@ -13,7 +14,7 @@ function BookCover({ book }: { book: any }) {
           <div className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-4 bg-stone-100">
             <span className="text-3xl sm:text-5xl opacity-20 mb-2">📚</span>
             <p className="text-stone-600 font-serif text-[10px] sm:text-xs font-bold text-center leading-tight mb-1">{book.judul}</p>
-          </div>
+          </div> 
         )}
       </div>
     );
@@ -44,10 +45,23 @@ function BookCard({ book, delay, onView }: { book: any; delay: number; onView: (
 }
 
 export default function Welcome({ canRegister = true, dbBooks = [], dbCategories = [], filters = {} }: any) {
-    const { auth } = usePage().props as { auth: { user: unknown } };
+    const { auth, flash } = usePage().props as any;
     const [activeFilter, setActiveFilter] = useState(filters.kategori || "");
     const [searchValue, setSearchValue] = useState(filters.search || "");
     const [selectedBook, setSelectedBook] = useState<any>(null);
+    const [isBorrowing, setIsBorrowing] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
+
+    // Auto-reopen modal when backend returns an error for a specific book
+    useEffect(() => {
+        if (flash?.error_book_id && flash?.error) {
+            const book = dbBooks.find((b: any) => b.id === flash.error_book_id);
+            if (book) {
+                setSelectedBook(book);
+                setModalError(flash.error);
+            }
+        }
+    }, [flash?.error_book_id, flash?.error]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -62,9 +76,11 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
         if (!auth.user) {
             router.get(login());
         } else {
+            setIsBorrowing(true);
+            setModalError(null);
             router.post(`/user/books/${book.id}/borrow`, {}, {
                 preserveScroll: true,
-                onSuccess: () => setSelectedBook(null),
+                onFinish: () => setIsBorrowing(false),
             });
         }
     };
@@ -87,9 +103,24 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
                     from { opacity: 0; transform: translateY(100%); }
                     to   { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes float {
+                    0% { transform: translateY(0px) rotate(0deg); }
+                    50% { transform: translateY(-10px) rotate(2deg); }
+                    100% { transform: translateY(0px) rotate(0deg); }
+                }
                 .anim-fade { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+                .anim-float { animation: float 6s ease-in-out infinite; }
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                
+                .pattern-dots {
+                    background-image: radial-gradient(rgba(0,0,0,0.05) 1.5px, transparent 1.5px);
+                    background-size: 24px 24px;
+                }
+                .pattern-grid {
+                    background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+                    background-size: 40px 40px;
+                }
             `}</style>
 
             {/* NAVBAR */}
@@ -119,20 +150,31 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
             </nav>
 
             {/* AESTHETIC SEARCH SECTION - REPLACE HERO */}
-            <section className="pt-32 pb-16 px-6 text-center">
-                <div className="max-w-4xl mx-auto flex flex-col items-center">
-                    <span className="anim-fade relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-900/5 border border-stone-200 text-[10px] font-black uppercase tracking-widest text-amber-600 mb-6" style={{ animationDelay: '0.1s' }}>
+            <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden pattern-dots">
+                <div className="absolute top-20 left-10 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl anim-float" />
+                <div className="absolute bottom-10 right-10 w-32 h-32 bg-stone-900/5 rounded-full blur-2xl anim-float" style={{ animationDelay: '1s' }} />
+                
+                <div className="max-w-4xl mx-auto flex flex-col items-center relative z-10">
+                    {flash?.success && <FlashAlert type="success" message={flash.success} />}
+                    {flash?.error && <FlashAlert type="error" message={flash.error} />}
+                    
+                    <span className="anim-fade relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-stone-200 text-[10px] font-black uppercase tracking-widest text-amber-600 mb-6 shadow-sm" style={{ animationDelay: '0.1s' }}>
                         <Compass className="w-3.5 h-3.5" /> Jendela Literasi Digital
                     </span>
 
                     <h1 className="anim-fade font-serif text-[clamp(2rem,6vw,4rem)] font-black leading-tight text-stone-900 mb-8" style={{ animationDelay: '0.2s' }}>
                         Temukan Inspirasi <br className="hidden md:block" />
-                        Dalam Setiap <span className="text-amber-500 italic">Halaman.</span>
+                        Dalam Setiap <span className="text-amber-500 italic relative">
+                            Halaman.
+                            <svg className="absolute -bottom-2 left-0 w-full h-2 text-amber-300/60" viewBox="0 0 100 10" preserveAspectRatio="none">
+                                <path d="M0 5 Q 25 0, 50 5 T 100 5" fill="none" stroke="currentColor" strokeWidth="4" />
+                            </svg>
+                        </span>
                     </h1>
 
                     {/* Premium Centered Search Bar */}
                     <div className="anim-fade w-full max-w-2xl" style={{ animationDelay: '0.3s' }}>
-                        <div className="flex flex-col sm:flex-row items-center bg-white border border-stone-200 p-1.5 rounded-2xl shadow-[0_15px_40px_-10px_rgba(0,0,0,0.06)] focus-within:ring-4 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all">
+                        <div className="flex flex-col sm:flex-row items-center bg-white border border-stone-200 p-1.5 rounded-2xl shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] focus-within:ring-4 focus-within:ring-amber-500/20 focus-within:border-amber-500 transition-all">
                             <div className="flex-1 flex items-center px-4 py-2 sm:py-0 w-full">
                                 <Search className="w-5 h-5 text-stone-400 mr-3 shrink-0" />
                                 <input
@@ -143,7 +185,7 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
                                     className="w-full py-3 text-sm md:text-base text-stone-900 bg-transparent border-none focus:ring-0 placeholder:text-stone-400 font-medium"
                                 />
                             </div>
-                            <button className="w-full sm:w-auto bg-stone-900 text-white px-8 py-3.5 sm:py-3.5 rounded-xl text-[11px] font-black tracking-widest hover:bg-amber-500 hover:text-stone-900 transition-all uppercase">
+                            <button className="w-full sm:w-auto bg-stone-900 text-white px-8 py-3.5 sm:py-3.5 rounded-xl text-[11px] font-black tracking-widest hover:bg-amber-500 hover:text-stone-900 transition-all uppercase shadow-md active:scale-95">
                                 Cari
                             </button>
                         </div>
@@ -192,13 +234,14 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
             </main>
 
             {/* FOOTER - CLEANER */}
-            <footer className="bg-stone-900 text-stone-400 px-6 py-12 mt-20">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+            <footer className="bg-stone-900 text-stone-400 px-6 py-12 mt-20 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-stone-700 to-amber-500" />
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left relative z-10">
                     <div className="font-serif text-2xl font-black text-white">
                         P<span className="text-amber-500">.</span>ustaka
                     </div>
                     <div className="flex flex-col items-center md:items-end gap-2">
-                        <p className="text-xs font-medium uppercase tracking-widest">Digital Library Experience</p>
+                        <p className="text-xs font-medium uppercase tracking-widest text-amber-500/80">Digital Library Experience</p>
                         <p className="text-[10px]">© 2026 P.ustaka Digital. All rights reserved.</p>
                     </div>
                 </div>
@@ -208,52 +251,71 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
             {selectedBook && (
               <div 
                 className="fixed inset-0 z-[100] flex md:items-center justify-center bg-stone-900/70 backdrop-blur-sm transition-opacity p-0 md:p-6"
-                onClick={() => setSelectedBook(null)}
+                onClick={() => { setSelectedBook(null); setModalError(null); }}
               >
                 <div 
                   className="bg-[#f5f0e8] text-stone-900 shadow-2xl w-full max-w-4xl md:rounded-3xl flex flex-col md:flex-row mt-auto md:mt-0 md:max-h-[85vh] h-[90vh] md:h-auto overflow-hidden animate-[slideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_both]" 
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button onClick={() => setSelectedBook(null)} className="absolute top-5 right-5 z-20 w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white rounded-full text-stone-900 transition-all border border-white/20">
+                  <button onClick={() => { setSelectedBook(null); setModalError(null); }} className="absolute top-5 right-5 z-20 w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white rounded-full text-stone-900 transition-all border border-white/20">
                     <X className="w-5 h-5" />
                   </button>
                   
-                  <div className="md:w-5/12 shrink-0 bg-stone-300 relative flex items-center justify-center p-12 md:p-16 border-r border-stone-200">
-                    <div className="relative z-10 w-full transform -rotate-1">
+                  <div className="md:w-5/12 shrink-0 bg-stone-300 relative flex items-center justify-center p-8 md:p-16 border-b md:border-b-0 md:border-r border-stone-200 min-h-[250px] md:min-h-0">
+                    <div className="absolute inset-0 overflow-hidden opacity-30 blur-2xl grayscale">
+                        {selectedBook.cover_image && <img src={`/storage/${selectedBook.cover_image}`} className="w-full h-full object-cover scale-150" alt="" />}
+                    </div>
+                    <div className="relative z-10 w-32 sm:w-40 md:w-full transform -rotate-2 md:-rotate-1 shadow-2xl">
                         <BookCover book={selectedBook} />
+                        {selectedBook.stok > 0 && (
+                             <div className="md:hidden absolute -bottom-4 -right-4 w-14 h-14 bg-amber-500 rounded-full flex flex-col items-center justify-center shadow-xl border-4 border-[#f5f0e8] transform rotate-12 text-stone-900 leading-none">
+                                 <span className="text-[10px] font-black uppercase tracking-tighter mix-blend-color-burn opacity-70">Sisa</span>
+                                 <span className="text-xl font-black mt-0.5">{selectedBook.stok}</span>
+                             </div>
+                        )}
                     </div>
                   </div>
                   
-                  <div className="p-8 md:p-14 flex-1 flex flex-col overflow-y-auto">
-                    <div className="mb-4">
-                        <span className="text-[10px] bg-stone-900 text-white px-3 py-1 rounded-full uppercase font-black tracking-widest">{selectedBook.kategori}</span>
-                    </div>
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="p-6 md:p-14 flex-1 overflow-y-auto hide-scrollbar">
+                        <div className="mb-4 flex items-center justify-between">
+                            <span className="text-[10px] bg-stone-900 text-white px-3 py-1 rounded-full uppercase font-black tracking-widest">{selectedBook.kategori}</span>
+                        </div>
 
-                    <h2 className="font-serif text-2xl md:text-4xl font-black leading-tight text-stone-900 mb-2">{selectedBook.judul}</h2>
-                    <p className="text-stone-500 font-bold text-sm md:text-base mb-8 border-b border-stone-200 pb-4">Penulis: <span className="text-stone-900">{selectedBook.penulis}</span></p>
-                    
-                    <div className="mb-8 flex-1">
-                      <h4 className="text-[11px] font-black uppercase tracking-widest text-stone-400 mb-2">Sinopsis</h4>
-                      <p className="text-stone-800 text-sm md:text-base leading-relaxed">
-                        {selectedBook.deskripsi || "Tidak ada deskripsi rinci untuk buku ini."}
-                      </p>
+                        {modalError && <FlashAlert type="error" message={modalError} duration={5000} />}
+
+                        <h2 className="font-serif text-2xl md:text-4xl font-black leading-tight text-stone-900 mb-2">{selectedBook.judul}</h2>
+                        <p className="text-stone-500 font-bold text-sm md:text-base mb-8 border-b border-stone-200 pb-4">Penulis: <span className="text-stone-900">{selectedBook.penulis}</span></p>
+                        
+                        <div className="pb-4">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-stone-400 mb-2">Sinopsis</h4>
+                          <p className="text-stone-800 text-sm md:text-base leading-relaxed">
+                            {selectedBook.deskripsi || "Tidak ada deskripsi rinci untuk buku ini."}
+                          </p>
+                        </div>
                     </div>
                     
-                    <div className="mt-auto pt-6 flex flex-col sm:flex-row items-center gap-6 border-t border-stone-200">
+                    {/* FIXED ACTION BAR */}
+                    <div className="p-4 md:px-14 md:py-6 bg-[#f0eae1] border-t border-stone-200 flex items-center gap-6 shrink-0 relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
                       <button 
                         onClick={() => handleBorrow(selectedBook)}
-                        disabled={selectedBook.stok <= 0}
-                        className={`w-full sm:flex-1 py-4 font-black tracking-widest uppercase text-xs rounded-xl transition-all shadow-lg
-                            ${selectedBook.stok > 0 
+                        disabled={selectedBook.stok <= 0 || isBorrowing}
+                        className={`w-full md:flex-1 py-4 font-black tracking-widest uppercase text-xs md:text-sm rounded-xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2
+                            ${selectedBook.stok > 0 && !isBorrowing
                                 ? 'bg-stone-900 text-white hover:bg-amber-500 hover:text-stone-900' 
-                                : 'bg-stone-200 text-stone-300 cursor-not-allowed shadow-none'}`}
+                                : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'}`}
                       >
-                        {selectedBook.stok > 0 ? "Ajukan Peminjaman" : "Stok Habis"}
+                        {isBorrowing && <div className="w-4 h-4 border-2 border-stone-400 border-t-stone-800 rounded-full animate-spin" />}
+                        {selectedBook.stok > 0 ? (isBorrowing ? "Memproses..." : "Ajukan Peminjaman") : "Stok Habis"}
                       </button>
-                      <div className="text-center px-2 shrink-0">
-                        <span className="block text-2xl font-black text-stone-900 leading-none">{selectedBook.stok}</span>
-                        <span className="block text-[9px] font-black uppercase text-stone-400 mt-1 uppercase tracking-tighter">Sisa Stok</span>
-                      </div>
+                      
+                      {/* DESKTOP STOCK */}
+                      {selectedBook.stok > 0 && (
+                          <div className="hidden md:block text-center px-4 shrink-0">
+                            <span className="block text-3xl font-black text-stone-900 leading-none">{selectedBook.stok}</span>
+                            <span className="block text-[10px] font-black uppercase text-stone-400 mt-1 uppercase tracking-widest">Sisa Stok</span>
+                          </div>
+                      )}
                     </div>
                   </div>
                 </div>

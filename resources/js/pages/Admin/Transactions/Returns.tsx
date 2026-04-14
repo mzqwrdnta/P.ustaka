@@ -33,7 +33,9 @@ function DetailField({ label, value, className = '' }: { label: string; value: R
 export default function AdminTransactionsReturns({ transactions, filters }: any) {
     const { flash } = usePage<any>().props;
     const [search, setSearch] = useState(filters?.search || '');
-    const [tanggal, setTanggal] = useState(filters?.tanggal || '');
+    const [kelas, setKelas] = useState(filters?.kelas || '');
+    const [start, setStart] = useState(filters?.start_date || '');
+    const [end, setEnd] = useState(filters?.end_date || '');
     const [detail, setDetail] = useState<any>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -43,13 +45,13 @@ export default function AdminTransactionsReturns({ transactions, filters }: any)
         const timeout = setTimeout(() => {
             router.get(
                 '/admin/transactions/returns',
-                { search, tanggal },
+                { search, kelas, start_date: start, end_date: end },
                 { preserveState: true, replace: true },
             );
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [search, tanggal]);
+    }, [search, kelas, start, end]);
 
     const openDetail = async (id: number) => {
         setLoadingDetail(true);
@@ -72,19 +74,36 @@ export default function AdminTransactionsReturns({ transactions, filters }: any)
             <div className="flex flex-1 flex-col gap-4 rounded-xl p-4 w-full min-w-0">
                 {flash?.success && <div className="bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 p-4 rounded-xl text-sm font-medium">{flash.success}</div>}
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Cari anggota / NIS / judul buku..."
-                        className="flex h-10 w-full sm:w-72 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="flex h-10 w-full sm:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
+                    <select
+                        value={kelas}
+                        onChange={e => setKelas(e.target.value)}
+                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                        <option value="">Semua Kelas</option>
+                        <option value="X PPLG">X PPLG</option>
+                        <option value="XI PPLG">XI PPLG</option>
+                        <option value="XII PPLG">XII PPLG</option>
+                    </select>
                     <input
                         type="date"
-                        value={tanggal}
-                        onChange={e => setTanggal(e.target.value)}
-                        className="flex h-10 w-full sm:w-44 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={start}
+                        onChange={e => setStart(e.target.value)}
+                        className="flex h-10 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                    <span className="hidden sm:flex items-center text-gray-400">s/d</span>
+                    <input
+                        type="date"
+                        value={end}
+                        onChange={e => setEnd(e.target.value)}
+                        className="flex h-10 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                 </div>
 
