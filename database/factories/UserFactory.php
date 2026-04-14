@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Faker\Factory as Faker;
+
 
 /**
  * @extends Factory<User>
@@ -23,21 +23,21 @@ class UserFactory extends Factory
      *
      * @return array<string, mixed>
      */
-    public function definition(): array
-    {
-        $faker = Faker::create();
-        return [
-            'name' => $faker->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
-            'two_factor_secret' => null,
-            'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at' => null,
-        ];
-    }
+public function definition(): array
+{
+    $faker = \Faker\Factory::create();
 
+    return [
+        'name' => $faker->name(),
+        'email' => $faker->unique()->safeEmail(),
+        'email_verified_at' => now(),
+        'password' => static::$password ??= Hash::make('password'),
+        'remember_token' => Str::random(10),
+        'two_factor_secret' => null,
+        'two_factor_recovery_codes' => null,
+        'two_factor_confirmed_at' => null,
+    ];
+}
     /**
      * Indicate that the model's email address should be unverified.
      */
