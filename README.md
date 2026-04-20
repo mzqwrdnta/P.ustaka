@@ -77,9 +77,7 @@
 ### 🔐 Autentikasi
 - **Login / Register** akun email
 - **Verifikasi OTP** via email (Gmail SMTP)
-- **Login Google** via OAuth2 (Socialite)
 - **Reset Password** dengan OTP
-- **Two-Factor Authentication** (TOTP / QR Code)
 
 ---
 
@@ -253,19 +251,6 @@ perpus-app/
 ├── mockup/                    # Screenshot tampilan aplikasi
 └── tests/                     # Pest PHP tests
 ```
-
----
-
-## 🧪 Menjalankan Tests
-
-```bash
-# Jalankan semua test
-php artisan test --compact
-
-# Jalankan test spesifik
-php artisan test --compact --filter=BorrowBookTest
-```
-
 ---
 
 ## 🤝 Kontribusi
