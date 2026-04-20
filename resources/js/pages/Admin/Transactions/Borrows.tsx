@@ -30,7 +30,7 @@ function DetailField({ label, value, className = '' }: { label: string; value: R
     );
 }
 
-export default function AdminTransactionsBorrows({ transactions, filters }: any) {
+export default function AdminTransactionsBorrows({ transactions, filters, kelasOptions = [] }: any) {
     const { flash } = usePage<any>().props;
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || '');
@@ -100,9 +100,9 @@ export default function AdminTransactionsBorrows({ transactions, filters }: any)
                         className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                         <option value="">Semua Kelas</option>
-                        <option value="X PPLG">X PPLG</option>
-                        <option value="XI PPLG">XI PPLG</option>
-                        <option value="XII PPLG">XII PPLG</option>
+                        {kelasOptions.map((item: string) => (
+                            <option key={item} value={item}>{item}</option>
+                        ))}
                     </select>
                     <input
                         type="date"

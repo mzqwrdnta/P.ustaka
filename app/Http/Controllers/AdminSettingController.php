@@ -11,8 +11,9 @@ class AdminSettingController extends Controller
     public function index()
     {
         $settings = Setting::all()->pluck('value', 'key');
+
         return Inertia::render('Admin/Settings/Index', [
-            'settings' => $settings
+            'settings' => $settings,
         ]);
     }
 

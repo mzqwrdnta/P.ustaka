@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Member;
 use App\Models\Setting;
 use App\Models\Transaction;
 use App\Services\WhatsAppService;
@@ -16,6 +17,8 @@ class AdminTransactionController extends Controller
 
     public function borrows(Request $request)
     {
+        Transaction::syncFines();
+
         $query = Transaction::with(['member.user', 'book'])
             ->where('status', '!=', 'dikembalikan')
             ->orderBy('created_at', 'desc');
@@ -37,7 +40,7 @@ class AdminTransactionController extends Controller
         }
 
         if ($request->kelas) {
-            $query->whereHas('member', fn ($q) => $q->where('kelas', $request->kelas));
+            $query->whereHas('member', fn ($q) => $q->whereRaw("REPLACE(LOWER(kelas), '-', ' ') = ?", [strtolower($request->kelas)]));
         }
 
         if ($request->start_date && $request->end_date) {
@@ -48,14 +51,19 @@ class AdminTransactionController extends Controller
 
         $transactions = $query->paginate(10)->withQueryString();
 
+        $kelasOptions = Member::getUniqueKelas();
+
         return Inertia::render('Admin/Transactions/Borrows', [
             'transactions' => $transactions,
             'filters' => $request->only(['search', 'status', 'kelas', 'tanggal', 'start_date', 'end_date']),
+            'kelasOptions' => $kelasOptions,
         ]);
     }
 
     public function returns(Request $request)
     {
+        Transaction::syncFines();
+
         $query = Transaction::with(['member.user', 'book'])
             ->whereIn('status', ['dikembalikan', 'pending_pengembalian'])
             ->orderByRaw("CASE WHEN status = 'pending_pengembalian' THEN 0 ELSE 1 END")
@@ -75,7 +83,7 @@ class AdminTransactionController extends Controller
         }
 
         if ($request->kelas) {
-            $query->whereHas('member', fn ($q) => $q->where('kelas', $request->kelas));
+            $query->whereHas('member', fn ($q) => $q->whereRaw("REPLACE(LOWER(kelas), '-', ' ') = ?", [strtolower($request->kelas)]));
         }
 
         if ($request->start_date && $request->end_date) {
@@ -86,9 +94,12 @@ class AdminTransactionController extends Controller
 
         $transactions = $query->paginate(10)->withQueryString();
 
+        $kelasOptions = Member::getUniqueKelas();
+
         return Inertia::render('Admin/Transactions/Returns', [
             'transactions' => $transactions,
             'filters' => $request->only(['search', 'kelas', 'tanggal', 'start_date', 'end_date']),
+            'kelasOptions' => $kelasOptions,
         ]);
     }
 
@@ -137,23 +148,24 @@ class AdminTransactionController extends Controller
             abort(403);
         }
 
-        $now = now();
+        $returnDate = $transaction->tanggal_pengajuan_kembali ?: now();
         $jatuhTempo = Carbon::parse($transaction->tanggal_jatuh_tempo);
 
         $hariTerlambat = 0;
         $denda = 0;
         $statusDenda = 'belum_ada';
 
-        if ($now->startOfDay()->gt($jatuhTempo->startOfDay())) {
-            $hariTerlambat = abs((int) $now->startOfDay()->diffInDays($jatuhTempo->startOfDay(), false));
+        if (Carbon::parse($returnDate)->startOfDay()->gt($jatuhTempo->startOfDay())) {
+            $hariTerlambat = abs((int) Carbon::parse($returnDate)->startOfDay()->diffInDays($jatuhTempo->startOfDay(), false));
             $dendaPerHari = Setting::where('key', 'denda_per_hari')->value('value') ?? 2000;
             $denda = $hariTerlambat * (int) $dendaPerHari;
-            $statusDenda = 'belum_bayar';
+
+            $statusDenda = ($transaction->denda_dibayar >= $denda && $denda > 0) ? 'lunas' : 'belum_bayar';
         }
 
         $transaction->update([
             'status' => 'dikembalikan',
-            'tanggal_kembali' => $now,
+            'tanggal_kembali' => now(),
             'hari_terlambat' => $hariTerlambat,
             'denda' => $denda,
             'status_denda' => $statusDenda,

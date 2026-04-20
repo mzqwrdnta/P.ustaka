@@ -18,7 +18,7 @@ class TransactionFactory extends Factory
     public function definition(): array
     {
         return [
-            'kode_transaksi' => 'TRX-' . fake()->unique()->numerify('#####'),
+            'kode_transaksi' => 'TRX-'.fake()->unique()->numerify('#####'),
             'member_id' => Member::factory(),
             'book_id' => Book::factory(),
             'tanggal_pinjam' => now(),

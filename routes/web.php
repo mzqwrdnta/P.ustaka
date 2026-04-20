@@ -7,6 +7,9 @@ use App\Http\Controllers\AdminMemberController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminSettingController;
 use App\Http\Controllers\AdminTransactionController;
+use App\Http\Controllers\Auth\OtpVerificationController;
+use App\Http\Controllers\Auth\ResetPasswordOtpController;
+use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\MemberProfileController;
 use App\Http\Controllers\UserBookController;
 use App\Http\Controllers\UserTransactionController;
@@ -16,6 +19,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
+
+Route::get('/auth/google', [SocialiteController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [SocialiteController::class, 'callback']);
+Route::post('/verify-otp', [OtpVerificationController::class, 'verify'])->middleware(['auth'])->name('verify.otp');
+
+Route::post('/forgot-password-otp', [ResetPasswordOtpController::class, 'sendOtp'])->name('password.email.otp');
+Route::get('/reset-password-otp', function (Request $request) {
+    return inertia('auth/reset-password', ['email' => $request->query('email')]);
+})->name('password.reset.otp');
+Route::post('/reset-password-otp', [ResetPasswordOtpController::class, 'resetPassword'])->name('password.update.otp');
 
 Route::get('/', function (Request $request) {
     $query = Book::query()->where('status', 'aktif');
@@ -77,6 +90,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // User Routes
     Route::middleware(['member.profile'])->prefix('user')->name('user.')->group(function () {
         Route::redirect('/dashboard', '/user/books')->name('dashboard');
+
+        Route::get('/profile', [MemberProfileController::class, 'show'])->name('profile');
 
         Route::get('/books', [UserBookController::class, 'index'])->name('books.index');
         Route::post('/books/{book}/borrow', [UserBookController::class, 'borrow'])->name('books.borrow');

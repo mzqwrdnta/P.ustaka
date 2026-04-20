@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('tanggal_jatuh_tempo')->nullable();
             $table->date('tanggal_pengajuan_kembali')->nullable();
             $table->date('tanggal_kembali')->nullable();
-            $table->string('status'); 
+            $table->string('status');
             $table->integer('hari_terlambat')->default(0);
             $table->integer('denda')->default(0);
             $table->string('status_denda')->default('belum_ada');

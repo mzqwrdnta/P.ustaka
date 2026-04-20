@@ -3,65 +3,53 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class AdminMemberController extends Controller
 {
-   public function index(Request $request)
-{
-    $query = Member::with('user');
+    public function index(Request $request)
+    {
+        $query = Member::with('user');
 
-    // SEARCH NIS / NAMA
-    if ($request->filled('search')) {
-        $search = trim($request->search);
+        // SEARCH NIS / NAMA
+        if ($request->filled('search')) {
+            $search = trim($request->search);
 
-        $query->where(function ($q) use ($search) {
-            $q->where('nis', 'like', "%{$search}%")
-              ->orWhere('nama_lengkap', 'like', "%{$search}%");
-        });
+            $query->where(function ($q) use ($search) {
+                $q->where('nis', 'like', "%{$search}%")
+                    ->orWhere('nama_lengkap', 'like', "%{$search}%");
+            });
+        }
+
+        // FILTER KELAS
+        if ($request->kelas !== null && $request->kelas !== '') {
+            $query->whereRaw("REPLACE(LOWER(kelas), '-', ' ') = ?", [strtolower($request->kelas)]);
+        }
+
+        // FILTER JENIS KELAMIN
+        if ($request->jenis_kelamin !== null && $request->jenis_kelamin !== '') {
+            $query->where('jenis_kelamin', $request->jenis_kelamin);
+        }
+
+        // FILTER STATUS AKTIF
+        if ($request->status_aktif !== null && $request->status_aktif !== '') {
+            $query->where('status_aktif', (int) $request->status_aktif);
+        }
+
+        $members = $query
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return Inertia::render('Admin/Members/Index', [
+            'members' => $members,
+            'filters' => $request->only(['search', 'kelas', 'jenis_kelamin', 'status_aktif']),
+            'kelasOptions' => Member::getUniqueKelas(),
+        ]);
     }
-
-    // FILTER KELAS (lebih aman: case-insensitive)
-    if ($request->kelas !== null && $request->kelas !== '') {
-        $query->whereRaw('LOWER(kelas) = ?', [strtolower($request->kelas)]);
-    }
-
-    // FILTER JENIS KELAMIN
-    if ($request->jenis_kelamin !== null && $request->jenis_kelamin !== '') {
-        $query->where('jenis_kelamin', $request->jenis_kelamin);
-    }
-
-    // FILTER STATUS AKTIF
-    if ($request->status_aktif !== null && $request->status_aktif !== '') {
-        $query->where('status_aktif', (int) $request->status_aktif);
-    }
-
-    $members = $query
-        ->latest()
-        ->paginate(10)
-        ->withQueryString();
-
-    // Ambil semua kelas unik untuk dropdown
-    $kelasOptions = Member::query()
-        ->select('kelas')
-        ->whereNotNull('kelas')
-        ->distinct()
-        ->orderBy('kelas')
-        ->pluck('kelas')
-        ->values();
-
-    return Inertia::render('Admin/Members/Index', [
-        'members' => $members,
-        'filters' => $request->only([
-            'search',
-            'kelas',
-            'jenis_kelamin',
-            'status_aktif',
-        ]),
-        'kelasOptions' => $kelasOptions,
-    ]);
-}
 
     public function create()
     {
@@ -82,11 +70,11 @@ class AdminMemberController extends Controller
             'status_aktif' => 'boolean',
         ]);
 
-        $user = \App\Models\User::create([
+        $user = User::create([
             'name' => $validated['nama_lengkap'],
             'email' => $validated['email'],
             'password' => bcrypt($validated['password']),
-            'role' => 'user'
+            'role' => 'user',
         ]);
 
         Member::create([
@@ -106,8 +94,9 @@ class AdminMemberController extends Controller
     public function edit(Member $member)
     {
         $member->load('user');
+
         return Inertia::render('Admin/Members/Edit', [
-            'member' => $member
+            'member' => $member,
         ]);
     }
 
@@ -121,13 +110,23 @@ class AdminMemberController extends Controller
             'no_hp' => 'required|string|max:20',
             'alamat' => 'nullable|string',
             'status_aktif' => 'boolean',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
+        if ($request->hasFile('foto')) {
+            if ($member->foto) {
+                Storage::disk('public')->delete($member->foto);
+            }
+            $validated['foto'] = $request->file('foto')->store('members', 'public');
+        } else {
+            unset($validated['foto']);
+        }
+
         $member->update($validated);
-        
+
         if ($member->user) {
             $member->user->update([
-                'name' => $validated['nama_lengkap']
+                'name' => $validated['nama_lengkap'],
             ]);
         }
 
@@ -138,6 +137,7 @@ class AdminMemberController extends Controller
     {
         $member->user()->delete(); // Will cascade if setup properly or we delete user too.
         $member->delete();
+
         return redirect()->route('admin.members.index')->with('success', 'Anggota berhasil dihapus.');
     }
 }

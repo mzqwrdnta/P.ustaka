@@ -3,9 +3,17 @@ import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRef, useState } from 'react';
+import { Camera, User } from 'lucide-react';
 
 export default function AdminMembersEdit({ member }: any) {
-    const { data, setData, put, processing, errors } = useForm({
+    const [fotoPreview, setFotoPreview] = useState<string | null>(
+        member.foto ? `/storage/${member.foto}` : null,
+    );
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const { data, setData, post, processing, errors } = useForm({
+        _method: 'PUT',
         nis: member.nis,
         nama_lengkap: member.nama_lengkap,
         kelas: member.kelas,
@@ -13,11 +21,23 @@ export default function AdminMembersEdit({ member }: any) {
         no_hp: member.no_hp,
         alamat: member.alamat || '',
         status_aktif: member.status_aktif,
+        foto: null as File | null,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(`/admin/members/${member.id}`);
+        post(`/admin/members/${member.id}`, {
+            forceFormData: true,
+        });
+    };
+
+    const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setData('foto', file);
+        const reader = new FileReader();
+        reader.onload = () => setFotoPreview(reader.result as string);
+        reader.readAsDataURL(file);
     };
 
     return (
@@ -27,7 +47,40 @@ export default function AdminMembersEdit({ member }: any) {
                 <div className="border-border/50 rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900">
                     <h2 className="text-xl font-bold mb-6">Edit Data Anggota</h2>
 
-                    <form onSubmit={submit} className="space-y-4">
+                    <form onSubmit={submit} className="space-y-6">
+
+                        {/* FOTO UPLOAD */}
+                        <div className="flex flex-col items-center gap-3">
+                            <div
+                                className="relative w-28 h-28 rounded-2xl overflow-hidden bg-stone-100 border-2 border-dashed border-stone-300 cursor-pointer hover:border-amber-400 transition-colors group"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {fotoPreview ? (
+                                    <img src={fotoPreview} alt="Foto anggota" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-stone-400 gap-1">
+                                        <User className="w-10 h-10" />
+                                        <span className="text-xs font-medium">Foto</span>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Camera className="w-7 h-7 text-white" />
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs text-amber-600 hover:text-amber-700 font-semibold underline">
+                                {fotoPreview ? 'Ganti Foto' : 'Upload Foto'}
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpg,image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={handleFotoChange}
+                            />
+                            {errors.foto && <p className="text-red-500 text-sm">{errors.foto}</p>}
+                            <p className="text-xs text-stone-400">Max 2MB. JPG, PNG, atau WebP.</p>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="nis">NIS</Label>
@@ -53,11 +106,9 @@ export default function AdminMembersEdit({ member }: any) {
                                     <option value="X-PPLG">X PPLG</option>
                                     <option value="XI-PPLG">XI PPLG</option>
                                     <option value="XII-PPLG">XII PPLG</option>
-
                                     <option value="X-AKL">X AKL</option>
                                     <option value="XI-AKL">XI AKL</option>
                                     <option value="XII-AKL">XII AKL</option>
-
                                     <option value="X-MPLB">X MPLB</option>
                                     <option value="XI-MPLB">XI MPLB</option>
                                     <option value="XII-MPLB">XII MPLB</option>

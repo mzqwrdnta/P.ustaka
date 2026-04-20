@@ -9,42 +9,42 @@ use Inertia\Inertia;
 
 class AdminBookController extends Controller
 {
-public function index(Request $request)
-{
-    $query = Book::query();
+    public function index(Request $request)
+    {
+        $query = Book::query();
 
-    // SEARCH
-    if ($request->filled('search')) {
-        $search = $request->search;
+        // SEARCH
+        if ($request->filled('search')) {
+            $search = $request->search;
 
-        $query->where(function ($q) use ($search) {
-            $q->where('judul', 'like', "%$search%")
-              ->orWhere('kode_buku', 'like', "%$search%")
-              ->orWhere('penulis', 'like', "%$search%");
-        });
+            $query->where(function ($q) use ($search) {
+                $q->where('judul', 'like', "%$search%")
+                    ->orWhere('kode_buku', 'like', "%$search%")
+                    ->orWhere('penulis', 'like', "%$search%");
+            });
+        }
+
+        // STOK
+        if ($request->stok === 'tersedia') {
+            $query->where('stok', '>', 0);
+        }
+
+        if ($request->stok === 'habis') {
+            $query->where('stok', 0);
+        }
+
+        // STATUS
+        if ($request->status !== null && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        $books = $query->latest()->paginate(10)->withQueryString();
+
+        return Inertia::render('Admin/Books/Index', [
+            'books' => $books,
+            'filters' => $request->only(['search', 'stok', 'status']),
+        ]);
     }
-
-    // STOK
-    if ($request->stok === 'tersedia') {
-        $query->where('stok', '>', 0);
-    }
-
-    if ($request->stok === 'habis') {
-        $query->where('stok', 0);
-    }
-
-    // STATUS
-    if ($request->status !== null && $request->status !== '') {
-        $query->where('status', $request->status);
-    }
-
-    $books = $query->latest()->paginate(10)->withQueryString();
-
-    return Inertia::render('Admin/Books/Index', [
-        'books' => $books,
-        'filters' => $request->only(['search', 'stok', 'status']),
-    ]);
-}
 
     public function create()
     {
@@ -71,13 +71,14 @@ public function index(Request $request)
         }
 
         Book::create($validated);
+
         return redirect()->route('admin.books.index')->with('success', 'Buku berhasil ditambahkan.');
     }
 
     public function edit(Book $book)
     {
         return Inertia::render('Admin/Books/Edit', [
-            'book' => $book
+            'book' => $book,
         ]);
     }
 
@@ -104,12 +105,14 @@ public function index(Request $request)
         }
 
         $book->update($validated);
+
         return redirect()->route('admin.books.index')->with('success', 'Buku berhasil diupdate.');
     }
 
     public function destroy(Book $book)
     {
         $book->delete();
+
         return redirect()->route('admin.books.index')->with('success', 'Buku berhasil dihapus.');
     }
 }

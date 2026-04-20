@@ -131,7 +131,7 @@ export default function AdminFinesIndex({ fines, filters }: any) {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex gap-2 justify-center">
+                                                <div className="flex gap-1.5 justify-center">
                                                     {trx.status_denda !== 'lunas' && (
                                                         <>
                                                             <button

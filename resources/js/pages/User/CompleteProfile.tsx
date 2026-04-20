@@ -3,6 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+const selectStyle: React.CSSProperties = {
+    backgroundColor: '#ffffff',
+    color: '#1c1917',
+};
+
 export default function CompleteProfile() {
     const { data, setData, post, processing, errors } = useForm({
         nis: '',
@@ -17,6 +22,14 @@ export default function CompleteProfile() {
         e.preventDefault();
         post('/user/profile/complete');
     };
+
+    const ChevronDown = () => (
+        <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <svg className="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-[#f5f0e8] text-stone-900 flex items-center justify-center p-4">
@@ -50,38 +63,44 @@ export default function CompleteProfile() {
 
                         <div>
                             <Label htmlFor="kelas">Kelas</Label>
-                            <select
-                                id="kelas"
-                                value={data.kelas}
-                                onChange={e => setData('kelas', e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background"
-                            >
-                                <option value="X-PPLG">X PPLG</option>
-                                <option value="XI-PPLG">XI PPLG</option>
-                                <option value="XII-PPLG">XII PPLG</option>
-
-                                <option value="X-AKL">X AKL</option>
-                                <option value="XI-AKL">XI AKL</option>
-                                <option value="XII-AKL">XII AKL</option>
-
-                                <option value="X-MPLB">X MPLB</option>
-                                <option value="XI-MPLB">XI MPLB</option>
-                                <option value="XII-MPLB">XII MPLB</option>
-                            </select>
+                            <div className="relative">
+                                <select
+                                    id="kelas"
+                                    value={data.kelas}
+                                    onChange={e => setData('kelas', e.target.value)}
+                                    className="appearance-none w-full h-11 rounded-md border border-stone-300 px-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors cursor-pointer"
+                                    style={selectStyle}
+                                >
+                                    <option value="X-PPLG">X PPLG</option>
+                                    <option value="XI-PPLG">XI PPLG</option>
+                                    <option value="XII-PPLG">XII PPLG</option>
+                                    <option value="X-AKL">X AKL</option>
+                                    <option value="XI-AKL">XI AKL</option>
+                                    <option value="XII-AKL">XII AKL</option>
+                                    <option value="X-MPLB">X MPLB</option>
+                                    <option value="XI-MPLB">XI MPLB</option>
+                                    <option value="XII-MPLB">XII MPLB</option>
+                                </select>
+                                <ChevronDown />
+                            </div>
                             {errors.kelas && <p className="text-red-500 text-sm">{errors.kelas}</p>}
                         </div>
 
                         <div>
                             <Label htmlFor="jenis_kelamin">Jenis Kelamin</Label>
-                            <select
-                                id="jenis_kelamin"
-                                value={data.jenis_kelamin}
-                                onChange={e => setData('jenis_kelamin', e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background"
-                            >
-                                <option value="Laki-laki">Laki-laki</option>
-                                <option value="Perempuan">Perempuan</option>
-                            </select>
+                            <div className="relative">
+                                <select
+                                    id="jenis_kelamin"
+                                    value={data.jenis_kelamin}
+                                    onChange={e => setData('jenis_kelamin', e.target.value)}
+                                    className="appearance-none w-full h-11 rounded-md border border-stone-300 px-3 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors cursor-pointer"
+                                    style={selectStyle}
+                                >
+                                    <option value="Laki-laki">Laki-laki</option>
+                                    <option value="Perempuan">Perempuan</option>
+                                </select>
+                                <ChevronDown />
+                            </div>
                             {errors.jenis_kelamin && <p className="text-red-500 text-sm">{errors.jenis_kelamin}</p>}
                         </div>
 

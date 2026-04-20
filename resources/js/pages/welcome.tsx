@@ -65,7 +65,8 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            if (activeFilter !== "" || searchValue !== "" || window.location.search !== "") {
+            const hasChanged = searchValue !== (filters.search || "") || activeFilter !== (filters.kategori || "");
+            if (hasChanged) {
                 router.get('/', { search: searchValue, kategori: activeFilter }, { preserveState: true, replace: true, preserveScroll: true });
             }
         }, 500);
@@ -184,6 +185,15 @@ export default function Welcome({ canRegister = true, dbBooks = [], dbCategories
                                     placeholder="Cari judul buku, penulis, atau topik..."
                                     className="w-full py-3 text-sm md:text-base text-stone-900 bg-transparent border-none focus:ring-0 placeholder:text-stone-400 font-medium"
                                 />
+                                {searchValue && (
+                                    <button 
+                                        type="button"
+                                        onClick={() => setSearchValue('')}
+                                        className="p-1.5 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-600 transition-colors mr-2"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                             <button className="w-full sm:w-auto bg-stone-900 text-white px-8 py-3.5 sm:py-3.5 rounded-xl text-[11px] font-black tracking-widest hover:bg-amber-500 hover:text-stone-900 transition-all uppercase shadow-md active:scale-95">
                                 Cari

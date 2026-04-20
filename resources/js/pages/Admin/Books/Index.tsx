@@ -112,7 +112,7 @@ export default function AdminBooksIndex({ books, filters = {} }: any) {
                                     <th className="px-4 py-3">Penulis</th>
                                     <th className="px-4 py-3">Stok</th>
                                     <th className="px-4 py-3">Status</th>
-                                    <th className="px-4 py-3 text-center">Aksi</th>
+                                    <th className="px-4 py-3 font-semibold text-center">Aksi</th>
                                 </tr>
                             </thead>
 
@@ -176,22 +176,23 @@ export default function AdminBooksIndex({ books, filters = {} }: any) {
                                             </span>
                                         </td>
 
-                                        {/* AKSI */}
-                                        <td className="px-4 py-3 text-right">
-                                            <Link
-                                                href={`/admin/books/${book.id}/edit`}
-                                                className="text-blue-600 hover:text-blue-800 text-xs font-bold px-2 py-1"
-                                            >
-                                                Edit
-                                            </Link>
-                                            <Link
-                                                href={`/admin/books/${book.id}`}
-                                                method="delete"
-                                                as="button"
-                                                className="text-rose-600 hover:text-rose-800 text-xs font-bold px-2 py-1"
-                                            >
-                                                Hapus
-                                            </Link>
+                                        <td className="px-4 py-3">
+                                            <div className="flex gap-1.5 justify-center">
+                                                <Link
+                                                    href={`/admin/books/${book.id}/edit`}
+                                                    className="text-xs bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1.5 rounded font-medium transition-colors"
+                                                >
+                                                    Edit
+                                                </Link>
+                                                <Link
+                                                    href={`/admin/books/${book.id}`}
+                                                    method="delete"
+                                                    as="button"
+                                                    className="text-xs bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 px-2.5 py-1.5 rounded font-medium transition-colors"
+                                                >
+                                                    Hapus
+                                                </Link>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

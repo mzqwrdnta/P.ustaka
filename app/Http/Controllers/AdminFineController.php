@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Member;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,6 +11,8 @@ class AdminFineController extends Controller
 {
     public function index(Request $request)
     {
+        Transaction::syncFines();
+
         $query = Transaction::with(['member', 'book'])
             ->where('denda', '>', 0)
             ->orderBy('created_at', 'desc');
@@ -30,11 +33,16 @@ class AdminFineController extends Controller
             $query->where('status_denda', $request->status);
         }
 
+        if ($request->kelas) {
+            $query->whereHas('member', fn ($q) => $q->whereRaw("REPLACE(LOWER(kelas), '-', ' ') = ?", [strtolower($request->kelas)]));
+        }
+
         $transactions = $query->paginate(10)->withQueryString();
 
         return Inertia::render('Admin/Fines/Index', [
             'fines' => $transactions,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $request->only(['search', 'status', 'kelas']),
+            'kelasOptions' => Member::getUniqueKelas(),
         ]);
     }
 

@@ -58,6 +58,7 @@ export default function BooksIndex({ books, categories = [], filters }: any) {
     const [selectedBook, setSelectedBook] = useState<any>(null);
     const [isBorrowing, setIsBorrowing] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
+    const [search, setSearch] = useState(filters?.search || '');
 
     usePoll(5000, { only: ['books'] });
 
@@ -72,20 +73,32 @@ export default function BooksIndex({ books, categories = [], filters }: any) {
         }
     }, [flash?.error_book_id]);
 
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (search !== (filters?.search || '')) {
+                router.get('/user/books', { 
+                    search: search, 
+                    kategori: filters?.kategori || ''
+                }, { preserveState: true, replace: true, preserveScroll: true });
+            }
+        }, 500);
+
+        return () => clearTimeout(timeout);
+    }, [search]);
+
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
         router.get('/user/books', { 
-            search: formData.get('search'), 
-            kategori: formData.get('kategori')
+            search: search, 
+            kategori: filters?.kategori || ''
         }, { preserveState: true });
     };
 
     const handleCategorySelect = (cat: string) => {
         router.get('/user/books', { 
-            search: filters?.search || '', 
+            search: search, 
             kategori: filters?.kategori === cat ? '' : cat 
-        }, { preserveState: true });
+        }, { preserveState: true, preserveScroll: true });
     };
 
     const handleBorrow = (book: any) => {
@@ -131,10 +144,20 @@ export default function BooksIndex({ books, categories = [], filters }: any) {
                             <Search className="w-5 h-5 text-stone-400 mr-3 group-focus-within:text-amber-500 transition-colors" />
                             <input 
                                 name="search" 
-                                defaultValue={filters?.search || ''} 
+                                value={search} 
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Cari buku, pengarang, atau topik..." 
                                 className="w-full bg-transparent border-0 outline-none focus:ring-0 p-2 text-stone-900 text-sm md:text-base placeholder-stone-400 font-medium" 
                             />
+                            {search && (
+                                <button 
+                                    type="button"
+                                    onClick={() => setSearch('')}
+                                    className="p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-600 transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                             <input type="hidden" name="kategori" value={filters?.kategori || ''} />
                         </div>
                         <button type="submit" className="bg-stone-900 text-white rounded-[14px] px-8 py-3 text-sm font-black tracking-widest hover:bg-amber-500 hover:text-stone-900 transition-all uppercase active:scale-95">

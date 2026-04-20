@@ -86,9 +86,10 @@ export default function TransactionsIndex({ transactions, filters }: any) {
                 <table className="w-full text-sm text-left">
                   <thead>
                     <tr className="border-b border-stone-200 bg-stone-50/50">
-                      {["Kode", "Buku", "Status", "Tgl. Pinjam", "Jatuh Tempo", "Denda", "Aksi"].map((h) => (
+                      {["Kode", "Buku", "Status", "Tgl. Pinjam", "Jatuh Tempo", "Denda"].map((h) => (
                         <th key={h} className="px-5 py-3.5 text-[11px] font-bold text-stone-500 uppercase tracking-widest whitespace-nowrap">{h}</th>
                       ))}
+                      <th className="px-5 py-3.5 text-[11px] font-bold text-stone-500 uppercase tracking-widest whitespace-nowrap text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -136,16 +137,18 @@ export default function TransactionsIndex({ transactions, filters }: any) {
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          {trx.status === 'dipinjam' && (
-                            <Link
-                              href={`/user/transactions/${trx.id}/return`}
-                              method="post"
-                              as="button"
-                              className="inline-flex items-center gap-1.5 bg-stone-900 text-[#f5f0e8] px-4 py-2 text-xs font-bold tracking-wide uppercase rounded flex-shrink-0 hover:bg-amber-500 hover:text-stone-900 transition-colors whitespace-nowrap shadow-sm hover:shadow"
-                            >
-                              Kembalikan
-                            </Link>
-                          )}
+                          <div className="flex justify-center items-center">
+                            {trx.status === 'dipinjam' && (
+                              <Link
+                                href={`/user/transactions/${trx.id}/return`}
+                                method="post"
+                                as="button"
+                                className="inline-flex items-center gap-1.5 bg-stone-900 text-[#f5f0e8] px-4 py-2 text-xs font-bold tracking-wide uppercase rounded flex-shrink-0 hover:bg-amber-500 hover:text-stone-900 transition-colors whitespace-nowrap shadow-sm hover:shadow"
+                              >
+                                Kembalikan
+                              </Link>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -13,6 +13,8 @@ class UserTransactionController extends Controller
 
     public function index(Request $request)
     {
+        Transaction::syncFines();
+
         $member = auth()->user()->member;
 
         $query = Transaction::with('book')

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Home, Library, ScrollText, LogOut } from 'lucide-react';
+import { Home, Library, ScrollText, LogOut, User } from 'lucide-react';
 import React from 'react';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +10,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     const navItems = [
         { title: 'Katalog', href: '/user/books', icon: Library, active: isPath('/user/books') },
         { title: 'Transaksi', href: '/user/transactions', icon: ScrollText, active: isPath('/user/transactions') },
+        { title: 'Profil', href: '/user/profile', icon: User, active: isPath('/user/profile') },
     ];
 
     return (

@@ -16,7 +16,7 @@ class BookFactory extends Factory
     public function definition(): array
     {
         return [
-            'kode_buku' => 'BK-' . fake()->unique()->numerify('####'),
+            'kode_buku' => 'BK-'.fake()->unique()->numerify('####'),
             'judul' => fake()->sentence(3),
             'penulis' => fake()->name(),
             'penerbit' => fake()->company(),

@@ -42,15 +42,21 @@ interface Filters {
     kelas?: string;
     start_date?: string;
     end_date?: string;
+    period_type?: string;
+    period_date?: string;
+    period_month?: string;
+    period_year?: string;
 }
 
 function formatDate(dateStr?: string): string {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    });
+    // Split YYYY-MM-DD to avoid timezone shift
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return `${day} ${months[parseInt(month) - 1]} ${year}`;
 }
 
 function formatRupiah(amount: number): string {
@@ -67,15 +73,20 @@ function statusBadge(status: string) {
     return <span className={`px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>{status.replace(/_/g, ' ')}</span>;
 }
 
-export default function AdminReportsIndex({ transactions, filters, stats, kelas_stats }: {
+export default function AdminReportsIndex({ transactions, filters, stats, kelas_stats, kelasOptions = [] }: {
     transactions: Paginated;
     filters: Filters;
     stats: Stats;
     kelas_stats: KelasStats[];
+    kelasOptions?: string[];
 }) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
     const [kelas, setKelas] = useState(filters.kelas ?? '');
+    const [periodType, setPeriodType] = useState(filters.period_type ?? (filters.start_date || filters.end_date ? 'rentang' : ''));
+    const [periodDate, setPeriodDate] = useState(filters.period_date ?? '');
+    const [periodMonth, setPeriodMonth] = useState(filters.period_month ?? '');
+    const [periodYear, setPeriodYear] = useState(filters.period_year ?? new Date().getFullYear().toString());
     const [start, setStart] = useState(filters.start_date ?? '');
     const [end, setEnd] = useState(filters.end_date ?? '');
     const [showPrintPreview, setShowPrintPreview] = useState(false);
@@ -85,12 +96,34 @@ export default function AdminReportsIndex({ transactions, filters, stats, kelas_
         const t = setTimeout(() => {
             router.get(
                 '/admin/reports',
-                { search, status, kelas, start_date: start, end_date: end },
+                { 
+                    search, status, kelas, 
+                    period_type: periodType === 'rentang' ? '' : periodType,
+                    period_date: periodDate,
+                    period_month: periodMonth,
+                    period_year: periodYear,
+                    start_date: start, 
+                    end_date: end 
+                },
                 { preserveState: true, replace: true },
             );
         }, 400);
         return () => clearTimeout(t);
-    }, [search, status, kelas, start, end]);
+    }, [search, status, kelas, periodType, periodDate, periodMonth, periodYear, start, end]);
+
+    const buildQueryString = () => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        if (kelas) params.append('kelas', kelas);
+        if (periodType && periodType !== 'rentang') params.append('period_type', periodType);
+        if (periodDate) params.append('period_date', periodDate);
+        if (periodMonth) params.append('period_month', periodMonth);
+        if (periodYear) params.append('period_year', periodYear);
+        if (start) params.append('start_date', start);
+        if (end) params.append('end_date', end);
+        return params.toString();
+    };
 
     const handlePrint = () => {
         const content = printRef.current;
@@ -159,66 +192,153 @@ export default function AdminReportsIndex({ transactions, filters, stats, kelas_
                 </div>
 
                 {/* FILTER + EXPORT */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Cari nama anggota / judul buku..."
-                        className="flex h-10 w-full sm:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    />
-                    <select
-                        value={status}
-                        onChange={e => setStatus(e.target.value)}
-                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                        <option value="">Semua Status</option>
-                        <option value="dipinjam">Dipinjam</option>
-                        <option value="dikembalikan">Dikembalikan</option>
-                        <option value="terlambat">Terlambat</option>
-                    </select>
-                    <select
-                        value={kelas}
-                        onChange={e => setKelas(e.target.value)}
-                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                        <option value="">Semua Kelas</option>
-                        <option value="X PPLG">X PPLG</option>
-                        <option value="XI PPLG">XI PPLG</option>
-                        <option value="XII PPLG">XII PPLG</option>
-                    </select>
-                    <input
-                        type="date"
-                        value={start}
-                        onChange={e => setStart(e.target.value)}
-                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    />
-                    <input
-                        type="date"
-                        value={end}
-                        onChange={e => setEnd(e.target.value)}
-                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    />
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row md:items-end gap-3 flex-wrap bg-white dark:bg-zinc-900 p-4 rounded-xl border border-border/50 shadow-sm">
+                        <div className="flex-1 min-w-[240px]">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Pencarian</label>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Nama anggota / judul buku..."
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                            />
+                        </div>
 
-                    <div className="flex gap-2 sm:ml-auto">
-                        <button
-                            onClick={() => setShowPrintPreview(true)}
-                            className="flex h-10 items-center gap-2 px-4 rounded-md border border-input bg-background text-sm hover:bg-gray-50 dark:hover:bg-zinc-800"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
-                            Cetak
-                        </button>
-                        <a
-                            href="/admin/reports/export-excel"
-                            className="flex h-10 items-center gap-2 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Excel
-                        </a>
+                        <div className="w-full md:w-40">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Status</label>
+                            <select
+                                value={status}
+                                onChange={e => setStatus(e.target.value)}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all cursor-pointer"
+                            >
+                                <option value="">Semua Status</option>
+                                <option value="dipinjam">Dipinjam</option>
+                                <option value="dikembalikan">Dikembalikan</option>
+                                <option value="terlambat">Terlambat</option>
+                            </select>
+                        </div>
+
+                        <div className="w-full md:w-40">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Kelas</label>
+                            <select
+                                value={kelas}
+                                onChange={e => setKelas(e.target.value)}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all cursor-pointer"
+                            >
+                                <option value="">Semua Kelas</option>
+                                {kelasOptions.map((item: string) => (
+                                    <option key={item} value={item}>{item}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="w-full md:w-48">
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Tipe Periode</label>
+                            <select
+                                value={periodType}
+                                onChange={e => {
+                                    setPeriodType(e.target.value);
+                                    if (!e.target.value) {
+                                        setPeriodDate('');
+                                        setPeriodMonth('');
+                                        setStart('');
+                                        setEnd('');
+                                    }
+                                }}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all cursor-pointer"
+                            >
+                                <option value="">Semua Waktu</option>
+                                <option value="harian">Laporan Harian</option>
+                                <option value="bulanan">Laporan Bulanan</option>
+                                <option value="tahunan">Laporan Tahunan</option>
+                                <option value="rentang">Rentang Tanggal</option>
+                            </select>
+                        </div>
+
+                        {periodType === 'harian' && (
+                            <div className="w-full md:w-40 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="text-xs font-semibold text-emerald-600 uppercase mb-1 block">Pilih Tanggal</label>
+                                <input
+                                    type="date"
+                                    value={periodDate}
+                                    onChange={e => setPeriodDate(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-emerald-200 bg-emerald-50/30 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                        )}
+
+                        {periodType === 'bulanan' && (
+                            <div className="w-full md:w-44 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="text-xs font-semibold text-emerald-600 uppercase mb-1 block">Pilih Bulan</label>
+                                <input
+                                    type="month"
+                                    value={periodMonth}
+                                    onChange={e => setPeriodMonth(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-emerald-200 bg-emerald-50/30 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                        )}
+
+                        {periodType === 'tahunan' && (
+                            <div className="w-full md:w-32 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <label className="text-xs font-semibold text-emerald-600 uppercase mb-1 block">Pilih Tahun</label>
+                                <input
+                                    type="number"
+                                    min="2000"
+                                    max="2100"
+                                    value={periodYear}
+                                    onChange={e => setPeriodYear(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-emerald-200 bg-emerald-50/30 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                />
+                            </div>
+                        )}
+
+                        {periodType === 'rentang' && (
+                            <div className="flex flex-col md:flex-row items-end gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <div className="w-full md:w-40">
+                                    <label className="text-xs font-semibold text-emerald-600 uppercase mb-1 block">Dari</label>
+                                    <input
+                                        type="date"
+                                        value={start}
+                                        onChange={e => setStart(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-emerald-200 bg-emerald-50/30 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                    />
+                                </div>
+                                <span className="mb-2 hidden md:block text-gray-400">s/d</span>
+                                <div className="w-full md:w-40">
+                                    <label className="text-xs font-semibold text-emerald-600 uppercase mb-1 block">Sampai</label>
+                                    <input
+                                        type="date"
+                                        value={end}
+                                        onChange={e => setEnd(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-emerald-200 bg-emerald-50/30 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 ml-auto pt-4 md:pt-0">
+                            <a
+                                href={`/admin/reports/export-pdf?${buildQueryString()}`}
+                                target="_blank"
+                                className="flex h-10 items-center gap-2 px-5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-rose-200 dark:shadow-none"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                <span>Cetak PDF</span>
+                            </a>
+                            <a
+                                href={`/admin/reports/export-excel?${buildQueryString()}`}
+                                className="flex h-10 items-center gap-2 px-5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-emerald-200 dark:shadow-none"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <span>Excel</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -339,117 +459,7 @@ export default function AdminReportsIndex({ transactions, filters, stats, kelas_
                 </div>
             </div>
 
-            {/* PRINT PREVIEW MODAL */}
-            {showPrintPreview && (
-                <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto p-6">
-                    <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-4xl">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b dark:border-zinc-700">
-                            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Preview Cetak Laporan</h2>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handlePrint}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    Cetak Sekarang
-                                </button>
-                                <button
-                                    onClick={() => setShowPrintPreview(false)}
-                                    className="flex items-center gap-1 px-3 py-2 rounded-md border border-input bg-background text-sm hover:bg-gray-50 dark:hover:bg-zinc-800"
-                                >
-                                    Tutup
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Print content preview */}
-                        <div className="p-6 overflow-x-auto">
-                            <div ref={printRef} className="bg-white text-gray-900 p-6 rounded border border-gray-200 min-w-[600px] text-xs font-['Arial']">
-                                {/* Print Header */}
-                                <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
-                                    <h1 className="text-base font-bold uppercase tracking-wide">Laporan Transaksi Peminjaman Buku</h1>
-                                    <p className="text-gray-500 text-xs mt-1">Perpustakaan Sekolah &mdash; Dicetak pada {printDate}</p>
-                                    {(start || end) && (
-                                        <p className="text-gray-500 text-xs">
-                                            Periode: {start ? formatDate(start) : '...'} s/d {end ? formatDate(end) : '...'}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Stats */}
-                                <div className="grid grid-cols-3 gap-3 mb-4">
-                                    {[
-                                        { label: 'Total Pinjam', value: String(stats.total_pinjam) },
-                                        { label: 'Terlambat', value: String(stats.total_telat) },
-                                        { label: 'Total Denda', value: formatRupiah(stats.total_denda) },
-                                    ].map(s => (
-                                        <div key={s.label} className="border border-gray-300 rounded p-3 text-center">
-                                            <p className="text-gray-500 text-[10px] uppercase font-bold mb-1">{s.label}</p>
-                                            <p className="font-bold text-sm">{s.value}</p>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Table */}
-                                <table className="w-full border-collapse text-[10px] mb-4">
-                                    <thead>
-                                        <tr className="bg-gray-100">
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">#</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">Anggota</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">Kelas</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">Buku</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">Status</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">Tgl Pinjam</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-left font-bold uppercase">Tgl Kembali</th>
-                                            <th className="border border-gray-300 px-2 py-1.5 text-right font-bold uppercase">Denda</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {transactions.data.map((trx, idx) => (
-                                            <tr key={trx.id} className={idx % 2 === 1 ? 'bg-gray-50' : ''}>
-                                                <td className="border border-gray-300 px-2 py-1">{idx + 1}</td>
-                                                <td className="border border-gray-300 px-2 py-1">
-                                                    <div className="font-medium">{trx.member?.nama_lengkap ?? '-'}</div>
-                                                    <div className="text-gray-400">{trx.member?.nis ?? ''}</div>
-                                                </td>
-                                                <td className="border border-gray-300 px-2 py-1">{trx.member?.kelas ?? '-'}</td>
-                                                <td className="border border-gray-300 px-2 py-1">{trx.book?.judul ?? '-'}</td>
-                                                <td className="border border-gray-300 px-2 py-1">{trx.status.replace(/_/g, ' ')}</td>
-                                                <td className="border border-gray-300 px-2 py-1 whitespace-nowrap">{formatDate(trx.tanggal_pinjam)}</td>
-                                                <td className="border border-gray-300 px-2 py-1 whitespace-nowrap">{formatDate(trx.tanggal_kembali)}</td>
-                                                <td className="border border-gray-300 px-2 py-1 text-right">
-                                                    {trx.denda > 0 ? formatRupiah(trx.denda) : '-'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                {/* Kelas Teraktif */}
-                                {kelas_stats.length > 0 && (
-                                    <div>
-                                        <p className="font-bold text-[10px] uppercase border-b border-gray-300 pb-1 mb-2">Kelas Teraktif</p>
-                                        {kelas_stats.map((k, i) => (
-                                            <div key={k.kelas} className="flex justify-between py-1 border-b border-gray-100 text-[10px]">
-                                                <span>#{i + 1} &nbsp; {k.kelas}</span>
-                                                <span className="font-semibold">{k.total} transaksi</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Footer */}
-                                <div className="mt-6 text-right text-[10px] text-gray-400">
-                                    Dicetak oleh sistem perpustakaan &mdash; {printDate}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* PRINT PREVIEW MODAL DIPINDAHKAN KE PDF EXPORT */}
         </AppLayout>
     );
 }

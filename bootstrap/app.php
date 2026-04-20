@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CheckAdminRole;
+use App\Http\Middleware\EnsureHasMemberProfile;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -23,8 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'admin' => \App\Http\Middleware\CheckAdminRole::class,
-            'member.profile' => \App\Http\Middleware\EnsureHasMemberProfile::class,
+            'admin' => CheckAdminRole::class,
+            'member.profile' => EnsureHasMemberProfile::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

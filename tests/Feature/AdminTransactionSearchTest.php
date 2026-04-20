@@ -77,7 +77,7 @@ test('transaction show returns json detail', function () {
     $admin = createAdmin();
     $transaction = Transaction::factory()->create();
 
-    $response = $this->actingAs($admin)->getJson('/admin/transactions/' . $transaction->id);
+    $response = $this->actingAs($admin)->getJson('/admin/transactions/'.$transaction->id);
 
     $response->assertSuccessful();
     $response->assertJsonStructure([

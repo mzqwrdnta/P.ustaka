@@ -1,5 +1,5 @@
 // Components
-import { Form, Head } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -7,12 +7,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { login } from '@/routes';
-import { email } from '@/routes/password';
 
 export default function ForgotPassword({ status }: { status?: string }) {
+    const { data, setData, post, processing, errors } = useForm({
+        email: '',
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post('/forgot-password-otp', {
+            onSuccess: () => {
+                router.visit(`/reset-password-otp?email=${data.email}`);
+            }
+        });
+    };
+
     return (
         <>
-            <Head title="Forgot password" />
+            <Head title="Lupa password" />
 
             {status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
@@ -21,9 +33,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
             )}
 
             <div className="space-y-6">
-                <Form {...email.form()}>
-                    {({ processing, errors }) => (
-                        <>
+                <form onSubmit={submit}>
+                    <>
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email address</Label>
                                 <Input
@@ -33,6 +44,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     autoComplete="off"
                                     autoFocus
                                     placeholder="email@example.com"
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.target.value)}
                                 />
 
                                 <InputError message={errors.email} />
@@ -47,15 +60,14 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     {processing && (
                                         <LoaderCircle className="h-4 w-4 animate-spin" />
                                     )}
-                                    Email password reset link
+                                    Kirim OTP Autentikasi
                                 </Button>
                             </div>
                         </>
-                    )}
-                </Form>
+                </form>
 
                 <div className="space-x-1 text-center text-sm text-muted-foreground">
-                    <span>Or, return to</span>
+                    <span>Atau, kembali ke halaman</span>
                     <TextLink href={login()}>log in</TextLink>
                 </div>
             </div>
