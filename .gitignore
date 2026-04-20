@@ -9,7 +9,7 @@
 /storage/pail
 /vendor
 
-# Wayfinder (auto-generated, tidak perlu di-commit)
+# Wayfinder 
 /resources/js/actions
 /resources/js/routes
 /resources/js/wayfinder
@@ -35,7 +35,7 @@ Thumbs.db
 *.swo
 *~
 
-# AI Tools (internal configs, jangan di-push)
+# AI Tools 
 /.agents
 /.amp
 /.claude
@@ -69,7 +69,7 @@ auth.json
 Homestead.json
 Homestead.yaml
 
-# Storage uploads (file asli user, tidak perlu di git)
+# Storage uploads 
 /storage/app/public/books/*
 /storage/app/public/members/*
 !/storage/app/public/books/.gitkeep
